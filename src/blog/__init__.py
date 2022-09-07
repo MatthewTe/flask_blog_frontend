@@ -16,6 +16,6 @@ def create_app():
         from .blog import blog_bp
 
         # Registering blueprints:
-        app.register_blueprint(blog_bp)
+        app.register_blueprint(blog_bp, url_prefix="/blog")
 
         return app
