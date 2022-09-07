@@ -1,0 +1,28 @@
+{% extends 'core_layout.html' %}
+
+{% block content %}
+<div>
+  <div>
+    {% for category in categories %} 
+    <div class="text-center mt-5">
+      <u><h1>{{category.name}}</h1></u>
+    </div>
+      <div class="grid text-center mt-5">
+      {% for post in posts %}
+        {% if category.name == post.category %}
+          <div class="g-col-12 g-col-md-4">
+            <a class="link-dark" href="{{ url_for('blog_bp.render_blog_post', blog_id=post.id)}}">
+              <h3>{{post.title}}</h3>        
+            </a>
+            <div>
+              <div class="d-inline p-2 text-bg-primary">{{post.author}}</div>
+              <div class="d-inline p-2 text-bg-dark">{{post.created_at}}</div>
+            </div>            
+          </div>        
+        {% endif %}
+      {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock content %}

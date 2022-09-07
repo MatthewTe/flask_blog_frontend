@@ -1,0 +1,16 @@
+{% extends 'core_layout.html' %}
+
+{% block content %}
+<div class="d-grid gap-5">
+    <div class="mt-5 mx-auto">
+        <u><h1 class="main_title">{{post.title}}</h1></u>
+        <div class="d-inline p-2 text-bg-primary">{{post.author}}</div>
+        <div class="d-inline p-2 text-bg-dark">{{post.category}}</div>
+        <div class="d-inline p-2 text-bg-dark">{{post.created_at}}</div>
+    </div>
+    
+    <div style="max-width: 50rem; margin: 0 auto;">
+        {{post.body | safe}}
+    </div>
+</div>
+{% endblock content %}

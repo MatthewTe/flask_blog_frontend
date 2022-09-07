@@ -1,0 +1,33 @@
+{% extends 'core_layout.html' %}
+
+{% block scripts %}
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+    tinymce.init({
+      selector: '#testtextarea'
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+<form method="post" action="{{url_for('blog_bp.make_blog_post_request')}}">
+
+    <div class="mb-3">
+      <input type="text" placeholder="Username" name="username" value="{{request.form.username }}">
+      <input type="password" placeholder="Password" name="password" value="{{request.form.password }}">
+    </div>
+
+    <div class="mb-3">
+        <input class="form-control" type="text" name="blog_title" id="blogtitle" placeholder="Title">
+      </div>
+      <div class="mb-3">
+        <input class="form-control" type="text" name="blog_category" id="blogcategory" placeholder="Category (Spell it right!)">
+      </div>
+      <div class="mb-3">
+        <textarea id="testtextarea" name="blog_content"></textarea>
+      </div>
+      <div class="mb-3">
+          <input type="submit" value="submit">
+      </div>
+</form>
+{% endblock content %}
