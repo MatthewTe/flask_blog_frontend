@@ -16,7 +16,7 @@ blog_bp = Blueprint(
 def homepage():
     "Render homepage with blog posts recieved from the API"
     
-    # Make request to the Blog Post API and Blog Category API:
+    # Make request to the Blog Post API and Blog Category API:    
     try:
         # Checking conditional statement for dev/prod env to determine route to API:
         if app.config["FLASK_ENV"] == 'development':
@@ -37,7 +37,7 @@ def homepage():
             categories = []
             posts = []
 
-    except:
+    except Exception as e:
         categories = []
         posts = []
 
@@ -51,7 +51,11 @@ def render_blog_post(blog_id: int = None):
         return redirect(url_for("homepage"))
     
     # Making API request for single blog post content:
-    response = requests.get(f"http://127.0.0.1:8000/blog-api/posts/{blog_id}")
+    if app.config["FLASK_ENV"] == 'development':
+        response = requests.get(f"http://127.0.0.1:8000/blog-api/posts/{blog_id}")
+    else:
+        response = requests.get(f"http://rest-api:80/blog-api/posts/{blog_id}")
+
     if response.status_code == 200:
         # Providing blog content to the template:
         return render_template("render_post.html", post=response.json())
@@ -71,30 +75,42 @@ def make_blog_post_request():
     username = request.form["username"]
     password = request.form["password"]
 
-    auth_response = requests.post("http://127.0.0.1:8000/api-token-auth/", data={"username":username, "password":password})
-
+    if app.config["FLASK_ENV"] == 'development':
+        auth_response = requests.post("http://127.0.0.1:8000/api-token-auth/", data={"username":username, "password":password})
+    else: 
+        auth_response = requests.post("http://rest-api:80/api-token-auth/", data={"username":username, "password":password}) 
     # If Authentiaction Token is provided by API incorporate it into the blog POST request:
     if auth_response.status_code == 200:
 
         # Creating Token Authorization header:
         token_auth = f"Token {auth_response.json()['token']}"
 
-        # Creating a POST data object from the input form: 
         data = {
             "title":request.form["blog_title"],
             "body":request.form["blog_content"],
             "category":request.form["blog_category"],
             "author":request.form["username"]
-        }
+            }
 
-        create_blog_response = requests.post(
-            "http://127.0.0.1:8000/blog-api/posts/",
-            headers={"Authorization": token_auth},
-            data=data
-        )
+        # Creating a POST data object from the input form: 
+        if app.config["FLASK_ENV"] == "development":
+
+            create_blog_response = requests.post(
+                "http://127.0.0.1:8000/blog-api/posts/",
+                headers={"Authorization": token_auth},
+                data=data
+            )
+
+        else:
+            create_blog_response = requests.post(
+                "http://rest-api:80/blog-api/posts/",
+                headers={"Authorization": token_auth},
+                data=data
+            )
 
         # If the response was successful, redirecting to now existing blog post: 
         if create_blog_response.status_code == 201:
             return redirect(url_for("blog_bp.render_blog_post", blog_id=create_blog_response.json()["id"]))
 
 
+    return redirect(url_for("blog_bp.homepage"))
