@@ -10,12 +10,20 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" action="{{url_for('blog_bp.make_blog_post_request')}}">
 
-    <div class="mb-3">
-      <input type="text" placeholder="Username" name="username" value="{{request.form.username }}">
-      <input type="password" placeholder="Password" name="password" value="{{request.form.password }}">
-    </div>
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<ul class=flashes>
+    {% for message in messages %}
+        <div class="alert alert-danger" role="alert">
+            {{message}}
+        </div>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
+<form method="post" action="{{url_for('blog_bp.create_blog_post')}}">
 
     <div class="mb-3">
         <input class="form-control" type="text" name="blog_title" id="blogtitle" placeholder="Title">

@@ -11,11 +11,15 @@ def create_app():
         app.config.from_object('config.ProdConfig')
     else:
         app.config.from_object('config.DevConfig')
-
+    
     with app.app_context():
-        from .blog import blog_bp
+
+        
+        from .auth.auth_routes import auth_bp # Authentication Routes:
+        from .blog import blog_bp # Main Blog Routes
 
         # Registering blueprints:
+        app.register_blueprint(auth_bp)
         app.register_blueprint(blog_bp)
 
         return app

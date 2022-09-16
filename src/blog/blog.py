@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask import current_app as app
 
 import requests
+
+# Importing auth decorators:
+from .auth.auth_routes import authenticate
 
 # Blog Blueprint:
 blog_bp = Blueprint(
@@ -16,30 +19,25 @@ blog_bp = Blueprint(
 def homepage():
     "Render homepage with blog posts recieved from the API"
     
-    # Make request to the Blog Post API and Blog Category API:    
-    try:
-        # Checking conditional statement for dev/prod env to determine route to API:
-        if app.config["FLASK_ENV"] == 'development':
-            
-            blog_response = requests.get("http://localhost:8000/blog-api/posts/") 
-            category_response = requests.get("http://localhost:8000/blog-api/categories/")
-        else:
-            blog_response = requests.get("http://rest-api:80/blog-api/posts/")
-            category_response = requests.get("http://rest-api:80/blog-api/categories/")
-
-        # If response was successful pass response content to template:
-        if blog_response.status_code and category_response.status_code == 200:
-        
-            categories = category_response.json()
-            posts = blog_response.json()
-
-        else:
-            categories = []
-            posts = []
-
-    except Exception as e:
-        categories = []
+    # Make request to the Blog Post API and Blog Category API:
+    # Building URLS:
+    blog_url = f"{app.config['API_URL']}/blog-api/posts/"
+    category_url = f"{app.config['API_URL']}/blog-api/categories/"
+    
+    blog_response = requests.get(blog_url)
+    category_response = requests.get(category_url)
+    
+    # If response was successful pass response content to template:
+    if blog_response.status_code and category_response.status_code == 200:
+        posts = blog_response.json()
+        categories = category_response.json()
+    
+    # If the response was unsucessful, pass an empty list to the template and flash the error:
+    else:
         posts = []
+        categories = []
+        flash(blog_response.json())
+        flash(category_response.json())
 
     return render_template("homepage.html", posts=posts, categories=categories)
 
@@ -51,66 +49,47 @@ def render_blog_post(blog_id: int = None):
         return redirect(url_for("homepage"))
     
     # Making API request for single blog post content:
-    if app.config["FLASK_ENV"] == 'development':
-        response = requests.get(f"http://127.0.0.1:8000/blog-api/posts/{blog_id}")
-    else:
-        response = requests.get(f"http://rest-api:80/blog-api/posts/{blog_id}")
+    # Building specific blog based on id:
+    blog_id_url = f"{app.config['API_URL']}/blog-api/posts/{blog_id}"
+    blog_id_response = requests.get(blog_id_url) 
 
-    if response.status_code == 200:
+    if blog_id_response.status_code == 200:
         # Providing blog content to the template:
-        return render_template("render_post.html", post=response.json())
+        return render_template("render_post.html", post=blog_id_response.json())
 
 
 # Route that provides the form for creating a blog post and adding it to the REST API:
-@blog_bp.route("/create")
+@blog_bp.route("/create", methods=["GET", "POST"])
+@authenticate
 def create_blog_post():
-    "Simply renders the blog creation form template"
-    return render_template("create_post.html")
+    """If a get request is made, renders the blog creation form template. If a post request is made,
+    makes a POST request to the API to create a blog post with form content.
+    """
+    if request.method == "GET":
+        return render_template("create_post.html")
+    
+    # Blog post creation logic:
+    else:
+        # Extracting token from user session:
+        token = session["token"]
 
-# Route that processes the blog form submission by validating and making POST request to the REST API: 
-@blog_bp.route("/blog_POST", methods=["POST"])
-def make_blog_post_request():
-    "The route that actually makes the POST request to the Blog API to create a post"
-    # If a username and password are provided make an auth request to the API: 
-    username = request.form["username"]
-    password = request.form["password"]
-
-    if app.config["FLASK_ENV"] == 'development':
-        auth_response = requests.post("http://127.0.0.1:8000/api-token-auth/", data={"username":username, "password":password})
-    else: 
-        auth_response = requests.post("http://rest-api:80/api-token-auth/", data={"username":username, "password":password}) 
-    # If Authentiaction Token is provided by API incorporate it into the blog POST request:
-    if auth_response.status_code == 200:
-
-        # Creating Token Authorization header:
-        token_auth = f"Token {auth_response.json()['token']}"
-
+        # Creating payload from forms:
         data = {
             "title":request.form["blog_title"],
             "body":request.form["blog_content"],
             "category":request.form["blog_category"],
-            "author":request.form["username"]
-            }
+            "author":session["user"]
+        }
 
-        # Creating a POST data object from the input form: 
-        if app.config["FLASK_ENV"] == "development":
-
-            create_blog_response = requests.post(
-                "http://127.0.0.1:8000/blog-api/posts/",
-                headers={"Authorization": token_auth},
-                data=data
-            )
-
-        else:
-            create_blog_response = requests.post(
-                "http://rest-api:80/blog-api/posts/",
-                headers={"Authorization": token_auth},
-                data=data
-            )
+        # Making POST request to the API to create blog post:
+        blog_creation_endpoint = f"{app.config['API_URL']}/blog-api/posts/"
+        API_response = requests.post(blog_creation_endpoint, data=data, headers={"Authorization": token})
 
         # If the response was successful, redirecting to now existing blog post: 
-        if create_blog_response.status_code == 201:
-            return redirect(url_for("blog_bp.render_blog_post", blog_id=create_blog_response.json()["id"]))
+        if API_response.status_code == 201:
+            return redirect(url_for("blog_bp.render_blog_post", blog_id=API_response.json()["id"]))
+        else:
+            # If it was not sucessful stay on blog creation page and flash error:
+            flash(API_response.json())
+            return render_template("create_post.html")
 
-
-    return redirect(url_for("blog_bp.homepage"))
