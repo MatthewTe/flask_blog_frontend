@@ -51,6 +51,7 @@ def login():
         # If authentication is valid - add token and username to user session:
         if api_auth_response.status_code == 200: 
             token = f"Token {api_auth_response.json()['token']}"
+            session.permanent = True
             session["user"] = username 
             session["token"] = token
 

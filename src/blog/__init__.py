@@ -1,6 +1,8 @@
 import os
 from flask import Flask
 
+from datetime import timedelta
+
 # Application Factory:
 def create_app():
 
@@ -12,6 +14,10 @@ def create_app():
     else:
         app.config.from_object('config.DevConfig')
     
+    # Configuring session object:
+    app.permanent_session_lifetime = timedelta(days=5)
+
+    #app.config.from_object('config.DevConfig')
     with app.app_context():
 
         

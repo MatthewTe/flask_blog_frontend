@@ -65,14 +65,25 @@ def create_blog_post():
     """If a get request is made, renders the blog creation form template. If a post request is made,
     makes a POST request to the API to create a blog post with form content.
     """
+    # Processing GET request:
     if request.method == "GET":
-        return render_template("create_post.html")
+
+        # Making API request for list of categories:
+        category_endpoint = f"{app.config['API_URL']}/blog-api/categories/"
+        category_response = requests.get(category_endpoint)
+
+        if category_response.status_code == 200:
+            categories = category_response.json()
+        else:
+            categories = []
+
+        return render_template("create_post.html", categories=categories)
     
     # Blog post creation logic:
     else:
         # Extracting token from user session:
         token = session["token"]
-
+    
         # Creating payload from forms:
         data = {
             "title":request.form["blog_title"],
@@ -91,5 +102,35 @@ def create_blog_post():
         else:
             # If it was not sucessful stay on blog creation page and flash error:
             flash(API_response.json())
-            return render_template("create_post.html")
+            return render_template("create_post.html", categories=categories)
 
+# Route that allows an authenticated user to create a new category:
+@blog_bp.route("/create/category", methods=["GET", "POST"])
+@authenticate
+def create_blog_category():
+    "Method that renders the Category creation form and handels the POST request logic to the API"
+    # Rendering template:
+    if request.method == "GET":
+        return render_template("create_category.html")
+    
+    # Processing category form and making POST request to the API:
+    else:
+        # Building category endpoint:
+        token = session["token"]
+        category_endpoint = f"{app.config['API_URL']}/blog-api/categories/"
+        
+        # Building data payload:
+        data = {
+            "name":request.form["category"]
+        }
+
+        # Making request to API to create Blog Category:
+        API_response = requests.post(category_endpoint, data=data, headers={"Authorization":token})
+
+        # If the response was sucessful, redirect to homepage:
+        if API_response.status_code == 201:
+            return redirect(url_for("blog_bp.homepage"))
+        else:
+            # Error w/ Category creation flashes error on page:
+            flash(API_response.json())
+            return render_template("create_category.html")
