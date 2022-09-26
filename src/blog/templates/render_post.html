@@ -7,6 +7,9 @@
         <div class="d-inline p-2 text-bg-primary">{{post.author}}</div>
         <div class="d-inline p-2 text-bg-dark">{{post.category}}</div>
         <div class="d-inline p-2 text-bg-dark">{{post.created_at}}</div>
+        {% if user %}
+        <div class="d-inline p-2 text-bg-dark"><a href="{{url_for('blog_bp.edit_blog_post', blog_id=post.id)}}">edit</a></div>
+        {% endif %}
     </div>
     
     <div style="max-width: 50rem; margin: 0 auto;">

@@ -53,9 +53,13 @@ def render_blog_post(blog_id: int = None):
     blog_id_url = f"{app.config['API_URL']}/blog-api/posts/{blog_id}"
     blog_id_response = requests.get(blog_id_url) 
 
+    # Querying the browser session for the user auth system (used to determine the avaliblity of the edit button on the front-end):
+    user = session.get("user", None)
+   
+
     if blog_id_response.status_code == 200:
         # Providing blog content to the template:
-        return render_template("render_post.html", post=blog_id_response.json())
+        return render_template("render_post.html", post=blog_id_response.json(), user=user)
 
 
 # Route that provides the form for creating a blog post and adding it to the REST API:
@@ -103,6 +107,63 @@ def create_blog_post():
             # If it was not sucessful stay on blog creation page and flash error:
             flash(API_response.json())
             return render_template("create_post.html", categories=categories)
+
+# Route that provides a pre-populated for editing a blog post and PATCH-ing the post to the API:
+
+@blog_bp.route("/edit/<blog_id>", methods=["GET", "POST"])
+@authenticate
+def edit_blog_post(blog_id: int):
+    """When the edit button is clicked on the front-end the method renders the form template pre-populated with content from the 
+    existing blog allowing for edits to be made. 
+
+    It makes a PUT request to the API to update the existing instance.
+    """
+    # Processing GET request and pre-populating fields:
+    if request.method == "GET":
+
+        # Currently it uses the API to populate the fields - change this later to pass through the info from the edit button:
+        # Making API request for single blog post content:
+        # Building specific blog based on id:
+        blog_id_url = f"{app.config['API_URL']}/blog-api/posts/{blog_id}"
+        blog_id_response = requests.get(blog_id_url) 
+
+        # Making API request for list of categories:
+        category_endpoint = f"{app.config['API_URL']}/blog-api/categories/"
+        category_response = requests.get(category_endpoint)
+
+        if category_response.status_code == 200:
+            categories = category_response.json()
+        else:
+            categories = []
+
+        if blog_id_response.status_code == 200:
+            return render_template("edit_post.html", post=blog_id_response.json(), categories=categories)
+
+    # Processing PATCH request to update API instance:
+    if request.method == "POST":
+
+        # Assuming correct user authentication: 
+        # Extracting token from user session:
+        token = session["token"]
+    
+        # Creating payload from forms:
+        data = {
+            "title":request.form["blog_title"],
+            "body":request.form["blog_content"],
+            "category":request.form["blog_category"],
+            "author":session["user"]
+        }
+
+        # Making POST request to the API to create blog post:
+        blog_edit_endpoint = f"{app.config['API_URL']}/blog-api/posts/{blog_id}/"
+        API_response = requests.patch(blog_edit_endpoint, data=data, headers={"Authorization": token})
+
+        if API_response.status_code == 200:
+            return redirect(url_for("blog_bp.render_blog_post", blog_id=API_response.json()["id"]))
+        else:
+            # If it was not sucessful stay on blog creation page and flash error:
+            flash(API_response.json())
+            return render_template("edit_post.html", categories=categories, post=blog_id_response.json())
 
 # Route that allows an authenticated user to create a new category:
 @blog_bp.route("/create/category", methods=["GET", "POST"])

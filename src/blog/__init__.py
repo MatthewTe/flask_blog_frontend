@@ -13,7 +13,7 @@ def create_app():
         app.config.from_object('config.ProdConfig')
     else:
         app.config.from_object('config.DevConfig')
-    
+    #app.config.from_object("config.DevConfig")
     # Configuring session object:
     app.permanent_session_lifetime = timedelta(days=5)
 

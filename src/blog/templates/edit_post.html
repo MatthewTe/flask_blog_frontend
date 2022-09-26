@@ -1,0 +1,52 @@
+{% extends 'core_layout.html' %}
+
+{% block scripts %}
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+    let tinyMCE = tinymce.init({
+      selector: '#testtextarea'
+
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<ul class=flashes>
+    {% for message in messages %}
+        <div class="alert alert-danger" role="alert">
+            {{message}}
+        </div>
+    {% endfor %}
+</ul>
+{% endif %}
+{% endwith %}
+
+<form method="post" action="{{url_for('blog_bp.edit_blog_post', blog_id=post.id)}}">
+
+    <div class="mb-3">
+      
+        <input class="form-control" type="text" name="blog_title" id="blogtitle" placeholder="Title" value="{{post.title}}">
+      </div>
+      <div class="mb-3">
+        <select class="form-select" id="floatingSelect" aria-label="create-category" name="blog_category" id="blogcategory">
+          {% for category in categories %}
+            {% if post.category == category.name %}
+              <option selected value="{{category.name}}">{{category.name}}</option>
+            {% else %}
+              <option value="{{category.name}}">{{category.name}}</option>
+            {% endif %}
+
+          {% endfor %}
+        </select>        
+      </div>
+      <div class="mb-3">
+        <textarea id="testtextarea" name="blog_content">{{post.body|safe }}</textarea>
+      </div>
+      <div class="mb-3">
+          <input type="submit" value="submit">
+      </div>
+</form>
+{% endblock content %}
